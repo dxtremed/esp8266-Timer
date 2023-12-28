@@ -56,30 +56,12 @@ Turn off time:<br><input name="offTime" type="text" size="16" value="" ><br><br>
 
 //---------------------------------------------------------
 void handleRoot() {
-  webserver.send(200, "text/html", INDEX_HTML);
+  server.send(200, "text/html", INDEX_HTML);
 }
 
 //---------------------------------------------------------
 void handleNotFound() {
-  webserver.send(404, "text/plain", "Page not found ...");
-}
-
-//---------------------------------------------------------
-void handleSave() {
-  String str = "Settings Saved ...\r\n";
- 
-  Serial.print("number of arguments ");
-  Serial.println(webserver.args());                    // number of arguments
- 
-  if (webserver.args() > 0 ) {
-    for ( uint8_t i = 0; i < webserver.args(); i++ ) {
-      str += webserver.argName(i) + " = " + webserver.arg(i) + "\r\n";
-     
-      Serial.println("Arg "+ String(i)+"="+ webserver.argName(i));     
-      Serial.println("Arg "+ String(i)+"="+ webserver.arg(i));
-    }
-  }
-  webserver.send(200, "text/plain", str.c_str());
+  server.send(404, "text/plain", "Page not found ...");
 }
 
 void setup() {
