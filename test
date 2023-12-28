@@ -4,7 +4,7 @@
   Version 1.0.0
 *********/
 
-#include <FS.h>					//this needs to be first, or it all crashes and burns...
+#include <FS.h>					//first or crash and burn
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
@@ -20,11 +20,12 @@ String header;
 // Auxiliar variables to store the current output state
 String outputStateHeat = "Off";
 String outputStateHumidifier = "Off";
+String currentDay;
 
 // Assign output variables to GPIO pins
-char outputPinHeat[1] = "4";
+char outputPinHeat[2] = "4";
 char outputPinHumidifier[2] = "5";
-char nameProofbox[3] = "Name Me";
+char nameProofbox[30] = "Name Me";
 
 // Flag for saving data
 bool shouldSaveConfig = false;
@@ -33,6 +34,52 @@ bool shouldSaveConfig = false;
 void saveConfigCallback () {
   Serial.println("Should save config");
   shouldSaveConfig = true;
+}
+
+// Website code
+//---------------------------------------------------------
+static const char PROGMEM INDEX_HTML[] = R"rawliteral( 
+<!DOCTYPE html>
+<html>
+<head>
+<title>Clock Settings</title>
+</head>
+<body>
+<form method="post" action="/save" >
+Turn on time:<br><input name="onTime" type="text" size="16" value="" ><br><br>
+Turn off time:<br><input name="offTime" type="text" size="16" value="" ><br><br>
+<input type="submit" name="clk_action" value="accept">
+</form>
+</body>
+</html>
+)rawliteral";
+
+//---------------------------------------------------------
+void handleRoot() {
+  webserver.send(200, "text/html", INDEX_HTML);
+}
+
+//---------------------------------------------------------
+void handleNotFound() {
+  webserver.send(404, "text/plain", "Page not found ...");
+}
+
+//---------------------------------------------------------
+void handleSave() {
+  String str = "Settings Saved ...\r\n";
+ 
+  Serial.print("number of arguments ");
+  Serial.println(webserver.args());                    // number of arguments
+ 
+  if (webserver.args() > 0 ) {
+    for ( uint8_t i = 0; i < webserver.args(); i++ ) {
+      str += webserver.argName(i) + " = " + webserver.arg(i) + "\r\n";
+     
+      Serial.println("Arg "+ String(i)+"="+ webserver.argName(i));     
+      Serial.println("Arg "+ String(i)+"="+ webserver.arg(i));
+    }
+  }
+  webserver.send(200, "text/plain", str.c_str());
 }
 
 void setup() {
@@ -110,9 +157,9 @@ void setup() {
   // if it does not connect it starts an access point with the specified name
   // here  "AutoConnectAP"
   // and goes into a blocking loop awaiting configuration
-  //wifiManager.autoConnect("AutoConnectAP");
+  wifiManager.autoConnect("AutoConnectAP");
   // or use this for auto generated name ESP + ChipID
-  wifiManager.autoConnect();
+  //wifiManager.autoConnect();
   
   // if you get here you have connected to the WiFi
   Serial.println("Connected.");
@@ -147,6 +194,12 @@ void setup() {
   // Set outputs to LOW
   digitalWrite(atoi(outputPinHeat), LOW);;
   digitalWrite(atoi(outputPinHumidifier), LOW);;
+  
+  server.on("/", handleRoot);
+  server.on("/config", handleConfig);
+  server.on("/wifi", handleWifi);
+  server.on("/schedule", handleSched);
+  server.onNotFound(handleNotFound);
   
   server.begin();
 }
@@ -215,7 +268,8 @@ void loop(){
               client.println("<p><a href=\"/outputPinHeat/on\"><button class=\"button\">ON</button></a></p>");
             } else {
               client.println("<p><a href=\"/outputPinHeat/off\"><button class=\"button button2\">OFF</button></a></p>");
-            }                  
+            }               
+			client.println("<p>Click <a href=\"/wronglink\">here</a></p>");
             client.println("</body></html>");
             
             // The HTTP response ends with another blank line
