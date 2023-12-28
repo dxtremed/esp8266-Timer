@@ -12,7 +12,7 @@
 #include <ArduinoJson.h>
 
 // Set web server port number to 80
-WiFiServer server(80);
+ESP8266WebServer server(80);
 
 // Variable to store the HTTP request
 String header;
